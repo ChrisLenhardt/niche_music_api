@@ -12,42 +12,38 @@ supabase = create_client(
     os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
 
-@app.get("/album/search_id/{uid}")
-def find_album_by_id(uid: str):
+@app.get("/album/search/{type}/{query}")
+def find_album(type: str, query: str):
     """
-    Find album from db, takes position uid
+    Find album from db, changes search column depending on type
     """
-    column = "position"
-    try:
-        int(uid)
-    except:
-        return "Please input a numerical value!"
-    data = (
-        supabase
-        .table("albums")
-        .select("*")
-        .eq(column,uid)
-        .limit(100)
-        .execute()
-    )
+    if type == "id":
+        if not query.isnumeric():
+            return "Please give a numeric input for id search! Alternatively, use the /name/{query} endpoint!"
+        
+        column = "position"
+        data = (
+            supabase
+            .table("albums")
+            .select("*")
+            .eq(column,query)
+            .limit(100)
+            .execute()
+        )
 
 
-    return data
-
-@app.get("/album/search_name/{release_name}")
-def find_album_by_name(release_name: str):
-    """
-    Find album from db, takes release name
-    """
-    column = "release_name"
-
-    data = (
-        supabase
-        .table("albums")
-        .select("*")
-        .ilike(column,release_name)
-        .limit(100)
-        .execute()
-    )
+        return data
+    elif type == "name":
+        column = "release_name"
+        
+        data = (
+            supabase
+            .table("albums")
+            .select("*")
+            .ilike(column,query)
+            .limit(100)
+            .execute()
+        )
     
-    return data
+        return data
+        
