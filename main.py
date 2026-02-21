@@ -10,12 +10,20 @@ supabase = create_client(
 )
 
 @app.get("/album/{uid}")
-def process_data(uid: str):
+def find_album(uid: str):
+    """
+    Find album from db, can take position uid or album name
+    """
+    column = "position"
+    try:
+        int(uid)
+    except:
+        column = "release_name"
     data = (
         supabase
-        .table("dummy_table")
+        .table("albums")
         .select("*")
-        .eq("release_name",uid)
+        .eq(column,uid)
         .execute()
     )
 
