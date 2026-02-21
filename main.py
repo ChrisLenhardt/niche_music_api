@@ -1,12 +1,15 @@
 from fastapi import FastAPI, Depends
 from supabase import create_client
+from dotenv import load_dotenv
 import os
 
 app = FastAPI()
 
+load_dotenv()
+
 supabase = create_client(
-    os.environ["SUPABASE_URL"],
-    os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
 
 @app.get("/album/{uid}")
