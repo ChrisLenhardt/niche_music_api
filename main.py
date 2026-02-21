@@ -1,6 +1,7 @@
+import os
+
 from fastapi import FastAPI, Depends
 from supabase import create_client
-import os
 
 app = FastAPI()
 
