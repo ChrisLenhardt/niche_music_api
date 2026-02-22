@@ -110,10 +110,12 @@ def genreStringFromArtist(artist: str):
     try:
         artist = musicbrainzngs.search_artists(artist=artist)
     except:
-        print("Error occured fetching artist")
+        return "Error occured fetching artist"
         
-    artist_genres = artist["artist-list"][0]["tag-list"]
-    
+    try:
+        artist_genres = artist["artist-list"][0]["tag-list"]
+    except:
+        return "Error occured getting genres"
     sorted_genres = sorted(artist_genres, key=lambda d: d["count"], reverse=True)
     genreString = ""
     for i in range(3):
