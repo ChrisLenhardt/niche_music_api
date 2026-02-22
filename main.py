@@ -104,3 +104,24 @@ def searchForCoverArt(artist: str, release: str):
         return image_list
     
     return "Nothing found!"
+
+@app.get("/musicbrainz/search/{artist}")
+def genreStringFromArtist(artist: str):
+    try:
+        artist = musicbrainzngs.search_artists(artist=artist)
+    except:
+        print("Error occured fetching artist")
+        
+    artist_genres = artist["artist-list"][0]["tag-list"]
+    
+    sorted_genres = sorted(artist_genres, key=lambda d: d["count"], reverse=True)
+    genreString = ""
+    for i in range(3):
+        if i > len(sorted_genres) - 1:
+            break
+        else:
+            genreString += sorted_genres[i]["name"]
+        if i != 2:
+            genreString += ", "
+    
+    return genreString
