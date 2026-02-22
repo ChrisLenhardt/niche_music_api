@@ -62,14 +62,17 @@ def similarAlbumFromGenres(genreString: str):
     embedding = []
     
     if checkIfRowExists.data == []:
-        response = openai.embeddings.create(
-            input=genreString,
-            model="text-embedding-3-small"
-        )
-        
-        embedding = response.data[0].embedding
-        
-        supabase.table("cached_embeddings").insert({"genre_string": genreString, "embeddings": embedding}).execute()
+        try:
+            response = openai.embeddings.create(
+                input=genreString,
+                model="text-embedding-3-small"
+            )
+            
+            embedding = response.data[0].embedding
+            
+            supabase.table("cached_embeddings").insert({"genre_string": genreString, "embeddings": embedding}).execute()
+        except:
+            return "Error Occured creating embeddings"
     else:
         embedding = checkIfRowExists.data[0]["embeddings"]
 
