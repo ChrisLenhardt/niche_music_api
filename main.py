@@ -5,6 +5,7 @@ from supabase import create_client
 from dotenv import load_dotenv
 import os
 
+from util.post_processing import pp_album, searchForCoverArt
 from util.spotify_helpers import get_artist_image
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -98,9 +99,12 @@ def similarAlbumFromGenres(genreString: str):
 
     
     
-    data = (supabase.rpc('match_albums', {"query_embedding": embedding, "match_threshold": 0.50, "match_count": 10}).execute())
+    data = (supabase.rpc('match_albums', {"query_embedding": embedding, "match_threshold": 0.20, "match_count": 3}).execute())
+    print(data)
+    print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
+    supplementary = pp_album(data=data)
     
-    return data
+    return (data, supplementary)
 
 @app.get("/musicbrainz/search/{artist}/{release}")
 def searchForCoverArt(artist: str, release: str):
