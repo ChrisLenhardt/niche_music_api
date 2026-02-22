@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import openai
 import musicbrainzngs
+import requests
 
 app = FastAPI()
 
@@ -104,26 +105,48 @@ def similarAlbumFromGenres(genreString: str):
 @app.get("/musicbrainz/search/{artist}/{release}")
 def searchForCoverArt(artist: str, release: str):
     try:
-        release_group = musicbrainzngs.search_release_groups(artist=artist, release=release, strict=True)
+        # release_group = musicbrainzngs.search_release_groups(artist=artist, release=release, strict=True)
+        url=f"https://musicbrainz.org/ws/2/release-group/?query=artist:{artist}ANDrelease:{release}&fmt=json"
+        response = requests.get(url, timeout=5.0)
+        release_group = {}
+        if response.status_code == 200:
+            release_group = response.json()
+        
     except:
-        return "Error Occurred"
+        return "Error Occurred1"
     release_id=0
+    
     if release_group != {}:
         try:
-            release_list = release_group["release-group-list"][0]["release-list"]
+            release_id = release_group["release-groups"][0]["id"]
+            print(release_id)
         except:
-            return "Error Occurred"
-        for release in release_list:
-            if "status" in release:
-                if release["status"] == "Official":
-                    release_id = release["id"]
-                    break
+            return "Error Occurred2"
+        
+        
+        # for release in release_list:
+        #     if "status" in release:
+        #         if release["status"] == "Official":
+        #             release_id = release["id"]
+        #             break
         
         try:
-            image_list = musicbrainzngs.get_image_list(release_id)
+            getImageURL = f"https://coverartarchive.org/release-group/{release_id}"
+            print(getImageURL)
+            imageResponse = requests.get(getImageURL, timeout=5.0, allow_redirects=True)
+            followThrough = requests.get(imageResponse.url, timeout=5.0)
+            
+            image_list = followThrough.json()
+            print(image_list)
+                
         except:
             return "Error occurred fetching image list"
-        return image_list
+        
+        try:
+            image_url = image_list["images"][0]["image"]
+            return image_url
+        except:
+            return "Error Occurred3"
     
     return "Nothing found!"
 
