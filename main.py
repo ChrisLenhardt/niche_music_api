@@ -5,6 +5,8 @@ from supabase import create_client
 from dotenv import load_dotenv
 import os
 
+from util.spotify_helpers import get_artist_image
+
 app = FastAPI()
 
 load_dotenv()
@@ -48,4 +50,8 @@ def find_album(type: str, query: str):
         )
     
         return data
-        
+
+
+@app.get("/test/spotipy")
+def test_spotipy(): 
+    return get_artist_image()
