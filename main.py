@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends
 from supabase import create_client
 from dotenv import load_dotenv
 import os
+import openai
 
 app = FastAPI()
 
@@ -11,8 +12,10 @@ load_dotenv()
 
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    os.getenv("SUPABASE_SECRET")
 )
+
+openaiClient = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.get("/album/search/{type}/{query}")
 def find_album(type: str, query: str):
@@ -48,4 +51,27 @@ def find_album(type: str, query: str):
         )
     
         return data
+
+@app.get("/vector/similar_albums/{genreString}")
+def similarAlbumFromGenres(genreString: str):
+    
+    checkIfRowExists = supabase.table("cached_embeddings").select("*").eq("genre_string", genreString).execute()
+    embedding = []
+    
+    if checkIfRowExists.data == []:
+        response = openai.embeddings.create(
+            input=genreString,
+            model="text-embedding-3-small"
+        )
         
+        embedding = response.data[0].embedding
+        
+        supabase.table("cached_embeddings").insert({"genre_string": genreString, "embeddings": embedding}).execute()
+    else:
+        embedding = checkIfRowExists.data[0]["embeddings"]
+
+    
+    
+    data = (supabase.rpc('match_albums', {"query_embedding": embedding, "match_threshold": 0.50, "match_count": 10}).execute())
+    
+    return data
