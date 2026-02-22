@@ -5,8 +5,11 @@ from supabase import create_client
 from dotenv import load_dotenv
 import os
 import openai
+import musicbrainzngs
 
 app = FastAPI()
+
+musicbrainzngs.set_useragent("niche.ai", "1.0.0", "zerubbabelashenafi@gmail.com")
 
 load_dotenv()
 
@@ -59,14 +62,17 @@ def similarAlbumFromGenres(genreString: str):
     embedding = []
     
     if checkIfRowExists.data == []:
-        response = openai.embeddings.create(
-            input=genreString,
-            model="text-embedding-3-small"
-        )
-        
-        embedding = response.data[0].embedding
-        
-        supabase.table("cached_embeddings").insert({"genre_string": genreString, "embeddings": embedding}).execute()
+        try:
+            response = openai.embeddings.create(
+                input=genreString,
+                model="text-embedding-3-small"
+            )
+            
+            embedding = response.data[0].embedding
+            
+            supabase.table("cached_embeddings").insert({"genre_string": genreString, "embeddings": embedding}).execute()
+        except:
+            return "Error Occured creating embeddings"
     else:
         embedding = checkIfRowExists.data[0]["embeddings"]
 
@@ -75,3 +81,52 @@ def similarAlbumFromGenres(genreString: str):
     data = (supabase.rpc('match_albums', {"query_embedding": embedding, "match_threshold": 0.50, "match_count": 10}).execute())
     
     return data
+
+@app.get("/musicbrainz/search/{artist}/{release}")
+def searchForCoverArt(artist: str, release: str):
+    try:
+        release_group = musicbrainzngs.search_release_groups(artist=artist, release=release, strict=True)
+    except:
+        return "Error Occurred"
+    release_id=0
+    if release_group != {}:
+        try:
+            release_list = release_group["release-group-list"][0]["release-list"]
+        except:
+            return "Error Occurred"
+        for release in release_list:
+            if "status" in release:
+                if release["status"] == "Official":
+                    release_id = release["id"]
+                    break
+        
+        try:
+            image_list = musicbrainzngs.get_image_list(release_id)
+        except:
+            return "Error occurred fetching image list"
+        return image_list
+    
+    return "Nothing found!"
+
+@app.get("/musicbrainz/search/{artist}")
+def genreStringFromArtist(artist: str):
+    try:
+        artist = musicbrainzngs.search_artists(artist=artist)
+    except:
+        return "Error occured fetching artist"
+        
+    try:
+        artist_genres = artist["artist-list"][0]["tag-list"]
+    except:
+        return "Error occured getting genres"
+    sorted_genres = sorted(artist_genres, key=lambda d: d["count"], reverse=True)
+    genreString = ""
+    for i in range(3):
+        if i > len(sorted_genres) - 1:
+            break
+        else:
+            genreString += sorted_genres[i]["name"]
+        if i != 2:
+            genreString += ", "
+    
+    return genreString
